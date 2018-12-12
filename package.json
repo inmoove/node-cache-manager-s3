@@ -1,0 +1,32 @@
+{
+  "name": "cache-manager-s3",
+  "version": "1.0.0",
+  "description": "s3 store for node cache manager",
+  "keywords": [
+    "cache-manager",
+    "storage",
+    "s3"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inmoove/node-cache-manager-s3.git"
+  },
+  "bugs": {
+    "url": "https://github.com/inmoove/node-cache-manager-s3/issues"
+  },
+  "main": "index.js",
+  "scripts": {
+  },
+  "author": "Inmoove",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^1.4.2",
+    "knox": "^0.9.2",
+    "cache-manager": "^1.1.0",
+    "extend": "^3.0.0",
+    "fs-promise": "^0.3.1",
+    "request": "2.9.3",
+    "uuid": "^2.0.1"
+  },
+  "devDependencies": {}
+}
