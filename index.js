@@ -73,11 +73,13 @@ function deleteTemp(metaData) {
     });
 }
 
-function encode(value) {
-	return Buffer.from(value).toString('base64');
+function encode(options, value) {
+    value = (value || '').replace(options.site, '');
+    return Buffer.from(value).toString('base64');
 }
 
-function decode(value) {
+function decode(options, value) {
+    value = (value || '').replace(options.site, '');
 	return Buffer.from(value, 'base64').toString('ascii');
 }
 
@@ -89,6 +91,7 @@ function S3Store(options) {
 
     this.options = extend({
         path: 'cache/',
+        tryget: true,
         s3: {}
     }, options);
 
@@ -154,7 +157,7 @@ S3Store.prototype.set = function(key, val, options, cb) {
     var metaData = extend({}, new MetaData(), {
         key: key,
         value: val,
-        filename: this.options.path + '/cache_' + encode(key) + '.dat'
+        filename: this.options.path + '/cache_' + encode(this.options, key) + '.dat'
     });
 
     var stream = JSON.stringify(metaData);
@@ -177,7 +180,7 @@ S3Store.prototype.set = function(key, val, options, cb) {
 
             // upload to s3
             var client = knox.createClient(this.options.s3);
-            var s3Path = '/' + (this.options.s3.folder?(this.options.s3.folder + '/'):'') + metaData.filename;
+            var s3Path = '/' + metaData.filename;
             if (this.options.s3.root && this.options.s3.root !== "") {
                 s3Path = '/' + this.options.s3.root + s3Path;
             }
@@ -208,25 +211,36 @@ S3Store.prototype.get = function(key, options, cb) {
     // get the metadata from the collection
     var dataurl = this.collection[key];
     if (!dataurl) {
-        var s3Path = '/' + (this.options.s3.folder?(this.options.s3.folder + '/'):'') + this.options.path + '/cache_' + encode(key) + '.dat';
+        if (!this.options.tryget) return cb(null, null);
+        var s3Path = '/' + this.options.path + '/cache_' + encode(this.options, key) + '.dat';
         if (this.options.s3.root && this.options.s3.root !== "") {
             s3Path = '/' + this.options.s3.root + s3Path;
         }
         dataurl = this.options.s3.publicURL + s3Path;
+        var self = this;
         request({ url: dataurl }, function (er, res, body) {
-            if (!er) {
-                var diskdata = JSON.parse(body);
-                this.collection[key] = dataurl;
-                cb(null, diskdata.value);
+            if (!er || !body) {
+                try {
+                    var diskdata = JSON.parse(body);
+                    self.collection[key] = dataurl;
+                    cb(null, diskdata.value);
+                } catch(e) {
+                    return cb(null, null);
+                }
             } else {
                 return cb(null, null);
             }
         });
     } else {
         request({ url: dataurl }, function (er, res, body) {
-            if (!er) {
-                var diskdata = JSON.parse(body);
-                cb(null, diskdata.value);
+            if (!er || !body) {
+                try {
+                    var diskdata = JSON.parse(body);
+                    this.collection[key] = dataurl;
+                    cb(null, diskdata.value);
+                } catch(e) {
+                    return cb(null, null);
+                }
             } else {
                 return cb(null, null);
             }
